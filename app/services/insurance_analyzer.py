@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Literal, Optional
 import re
 from openai import OpenAI
 from pydantic import BaseModel
@@ -19,7 +19,12 @@ POLICY_NOTES_MAX = 12
 class CoverageAnalysisOutput(BaseModel):
     policy_name: str
     user_question: str
-    direct_answer: str          # NEW: one-line verdict (Covered / Not Covered / Conditional)
+    direct_answer: Literal[
+        "highly unlikely",
+        "unlikely",
+        "likely",
+        "very likely",
+    ]
     explanation: List[str]
     explanation_summary: str
     policy_notes: List[str]
@@ -89,10 +94,11 @@ class InsuranceAnalyzer:
         policy_name = str(result.get("policy_name") or "N/A").strip() or "N/A"
         user_question = str(result.get("user_question") or question).strip() or question
 
-        # Direct answer — new field
-        direct_answer = str(result.get("direct_answer") or "").strip()
-        if not direct_answer:
-            direct_answer = "Unable to determine — manual policy review required."
+        # Direct answer — likelihood scale
+        direct_answer = str(result.get("direct_answer") or "").strip().lower()
+        valid_likelihoods = {"highly unlikely", "unlikely", "likely", "very likely"}
+        if direct_answer not in valid_likelihoods:
+            direct_answer = "unable to determine"
 
         # Explanation points
         explanation = self._normalize_list(result.get("explanation"))
@@ -171,7 +177,7 @@ Return a JSON object matching this exact schema:
 {{
     "policy_name": "Extract exact policy name from document. Use N/A if not found.",
     "user_question": "Repeat the user question verbatim.",
-    "direct_answer": "One-line verdict: 'Covered', 'Not Covered', or 'Conditional — [key condition]'.",
+    "direct_answer": "Likelihood scale: 'highly unlikely' | 'unlikely' | 'likely' | 'very likely'. Based on how clearly the policy wording supports coverage for this scenario.",
     "explanation": [
         "3 to 6 bullet points. Reference specific clause names from the document only.",
         "Each point explains what triggers cover OR what excludes it.",
@@ -179,9 +185,10 @@ Return a JSON object matching this exact schema:
     ],
     "explanation_summary": "One sentence: what the coverage outcome depends on.",
     "policy_notes": [
-        "6 to 12 one-line notes. Format each as: <Issue> — <what it means> (<Clause Name>)",
-        "Flag: exclusions, limits, claim constraints, structural gaps.",
-        "Do not repeat explanation points. Do not give advice."
+        "6 to 12 one-line notes describing the policy's GENERAL exclusions, limitations, sub-limits, and claim conditions.",
+        "These should NOT be specific to the user question; they are broad policy warnings every holder should know.",
+        "Format each as: <Issue> — <what it means> (<Clause Name>)",
+        "Flag: exclusions, limits, claim constraints, structural gaps, things that are NOT covered regardless of cause."
     ],
     "policy_price": "If a price is visible in the documents, state it exactly. Otherwise: Not listed in provided documents",
     "final_summary": "One sentence summarising coverage determination by key clauses."
@@ -237,7 +244,7 @@ IMPORTANT: Respond with valid JSON only. No markdown fences, no preamble."""
         return {
             "policy_name": "N/A",
             "user_question": question,
-            "direct_answer": "Unable to determine — model response could not be parsed.",
+            "direct_answer": "unable to determine",
             "explanation": [
                 "The model returned a response that could not be mapped to the required output structure.",
                 "Coverage triggers and exclusions could not be extracted from this output.",
@@ -254,7 +261,7 @@ IMPORTANT: Respond with valid JSON only. No markdown fences, no preamble."""
         return {
             "policy_name": "N/A",
             "user_question": question,
-            "direct_answer": "Unable to determine — technical error during analysis.",
+            "direct_answer": "unable to determine",
             "explanation": [
                 "A technical error occurred and the analysis could not be completed.",
                 "Coverage trigger and exclusion mapping requires manual policy review.",

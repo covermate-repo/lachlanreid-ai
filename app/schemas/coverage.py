@@ -16,7 +16,7 @@ class CoverageRequest(BaseModel):
 class CoverageResponse(BaseModel):
     policy_name: str = "N/A"
     user_question: str
-    direct_answer: str          # NEW: one-line verdict returned first
+    direct_answer: str          # Likelihood: highly unlikely | unlikely | likely | very likely
     explanation: List[str]
     explanation_summary: str
     policy_notes: List[str]
@@ -28,7 +28,7 @@ class CoverageResponse(BaseModel):
             "example": {
                 "policy_name": "CGU Steadfast Home Insurance (Listed Events Cover)",
                 "user_question": "Am I covered for water coming through my walls?",
-                "direct_answer": "Conditional — depends on whether entry was caused by an insured event.",
+                "direct_answer": "unlikely",
                 "explanation": [
                     "Storm, Flood, Rainwater, Wind covers water damage caused directly by storm or rainwater.",
                     "Storm, Flood, Rainwater, Wind excludes ingress caused by structural defects, faulty design, or workmanship.",
@@ -40,12 +40,12 @@ class CoverageResponse(BaseModel):
                     "or by a structural or gradual cause."
                 ),
                 "policy_notes": [
-                    "Water damage exclusion — structural ingress not covered (Storm, Flood, Rainwater, Wind)",
-                    "Structural defect exclusion — faulty design/workmanship excluded (Storm, Flood, Rainwater, Wind)",
-                    "Gradual damage exclusion — seepage and non-sudden damage excluded (Escape of Liquid)",
-                    "Source repair exclusion — defective pipe or fitting not covered (Escape of Liquid)",
-                    "Listed events limitation — only named events trigger cover (Listed Events Cover)",
-                    "Excess payable — deducted per claim (Excess / Paying Claims)",
+                    "Listed events limitation — only named events trigger cover; anything not listed is excluded (Listed Events Cover)",
+                    "Gradual damage exclusion — seepage, rust, and wear-and-tear are not covered (Escape of Liquid / General Exclusions)",
+                    "Structural defect exclusion — faulty design or workmanship losses are excluded (Storm, Flood, Rainwater, Wind)",
+                    "Source repair exclusion — cost to repair the defective pipe or fitting is not covered (Escape of Liquid)",
+                    "Unoccupied dwelling limit — cover reduced or void after 60 consecutive days unoccupied (Unoccupied Buildings)",
+                    "Excess payable — a standard excess applies to every claim (Excess / Paying Claims)",
                 ],
                 "policy_price": "Not listed in provided documents",
                 "final_summary": (
